@@ -55,7 +55,7 @@
       </div>
 
       <div class="note">
-        Fórmula nueva:<br/>
+        Fórmula:<br/>
         <code>
           Puntos = 10 × ( √Entradas / √Pos ) × ( 1 + log10(Tipo de evento) + 0.25 ) × √(Tipo de evento/100000)
         </code><br/>
@@ -65,14 +65,14 @@
   </main>
 
   <script>
-    // Montos por Tipo de evento (ARS) - solo interno
+    // Montos internos actualizados (ARS)
     const EVENTOS = [
-      { key: "FINAL_HAND", label: "FINAL HAND", monto: 210000 },
-      { key: "CHAMPIONS",  label: "CHAMPIONS",  monto: 98000  },
-      { key: "LEGACY",     label: "LEGACY",     monto: 56000  },
-      { key: "GOLDEN",     label: "GOLDEN",     monto: 42000  },
-      { key: "VICTORY",    label: "VICTORY",    monto: 20000  },
-      { key: "STAGE",      label: "STAGE",      monto: 10000  },
+      { key: "FINAL_HAND", label: "FINAL HAND", monto: 225000 },
+      { key: "CHAMPIONS",  label: "CHAMPIONS",  monto: 105000 },
+      { key: "LEGACY",     label: "LEGACY",     monto: 60000  },
+      { key: "GOLDEN",     label: "GOLDEN",     monto: 72000  },
+      { key: "VICTORY",    label: "VICTORY",    monto: 22000  },
+      { key: "STAGE",      label: "STAGE",      monto: 11000  },
     ];
 
     const qEntEl = document.getElementById("qEnt");
@@ -145,8 +145,6 @@
         return showError("Tipo de evento inválido.");
       }
 
-      // Fórmula:
-      // 10 * (sqrt(entradas)/sqrt(pos)) * (1 + log10(tipoEvento) + 0.25) * sqrt(tipoEvento/100000)
       const parte1 = Math.sqrt(entradas) / Math.sqrt(pos);
       const parte2 = (1 + log10(tipoEvento) + 0.25);
       const parte3 = Math.sqrt(tipoEvento / 100000);
