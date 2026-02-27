@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Calculadora de Puntos CAP 2026</title>
+  <title>Ranking CAOP (Abril-Mayo-Junio)</title>
   <style>
     :root { --b:#e5e7eb; --t:#111827; --m:#6b7280; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; color:var(--t); background:#fff; }
@@ -25,7 +25,7 @@
 </head>
 <body>
   <main class="wrap">
-    <h1>Calculadora de Puntos CAP 2026</h1>
+    <h1>Ranking CAOP (Abril-Mayo-Junio)</h1>
     <p>Ingresá los datos del torneo para calcular tus puntos (TOP 40).</p>
 
     <div class="grid">
@@ -57,7 +57,7 @@
       <div class="note">
         Fórmula nueva:<br/>
         <code>
-          Puntos = 10 × ( √Entradas / √Pos ) × ( 1 + log10(Monto) + 0.25 ) × √(Monto/100000)
+          Puntos = 10 × ( √Entradas / √Pos ) × ( 1 + log10(Tipo de evento) + 0.25 ) × √(Tipo de evento/100000)
         </code><br/>
         Si la posición es mayor a 40, el resultado es 0.
       </div>
@@ -65,7 +65,7 @@
   </main>
 
   <script>
-    // Montos por Tipo de evento (ARS)
+    // Montos por Tipo de evento (ARS) - solo interno
     const EVENTOS = [
       { key: "FINAL_HAND", label: "FINAL HAND", monto: 210000 },
       { key: "CHAMPIONS",  label: "CHAMPIONS",  monto: 98000  },
@@ -93,11 +93,11 @@
     }
     posSel.value = "1";
 
-    // Cargar eventos
+    // Cargar eventos (solo nombres visibles)
     EVENTOS.forEach(ev => {
       const opt = document.createElement("option");
       opt.value = ev.key;
-      opt.textContent = `${ev.label} = $ ${ev.monto.toLocaleString("es-AR")}`;
+      opt.textContent = ev.label;
       eventoSel.appendChild(opt);
     });
     eventoSel.value = "FINAL_HAND";
@@ -114,7 +114,6 @@
     }
 
     function log10(x){
-      // log base 10
       return Math.log10 ? Math.log10(x) : (Math.log(x) / Math.log(10));
     }
 
@@ -128,12 +127,11 @@
         return showError("Ingresá una cantidad de entradas válida (> 0).");
       }
 
-      // Regla TOP 40
       if (!Number.isFinite(pos) || pos <= 0) {
         return showError("Seleccioná una posición válida.");
       }
+
       if (pos > 40) {
-        // Por seguridad: si alguna vez llega >40, devuelve 0.
         resVal.textContent = `0.00 puntos`;
         resMeta.textContent = `Posición > 40 (sin puntos).`;
         res.style.display = "block";
@@ -141,24 +139,23 @@
       }
 
       const ev = EVENTOS.find(e => e.key === eventoSel.value);
-      const monto = ev ? ev.monto : 0;
+      const tipoEvento = ev ? ev.monto : 0;
 
-      if (!Number.isFinite(monto) || monto <= 0) {
+      if (!Number.isFinite(tipoEvento) || tipoEvento <= 0) {
         return showError("Tipo de evento inválido.");
       }
 
       // Fórmula:
-      // 10 * (sqrt(entradas)/sqrt(pos)) * (1 + log10(monto) + 0.25) * sqrt(monto/100000)
+      // 10 * (sqrt(entradas)/sqrt(pos)) * (1 + log10(tipoEvento) + 0.25) * sqrt(tipoEvento/100000)
       const parte1 = Math.sqrt(entradas) / Math.sqrt(pos);
-      const parte2 = (1 + log10(monto) + 0.25);
-      const parte3 = Math.sqrt(monto / 100000);
+      const parte2 = (1 + log10(tipoEvento) + 0.25);
+      const parte3 = Math.sqrt(tipoEvento / 100000);
 
       const puntos = 10 * parte1 * parte2 * parte3;
-
       const safe = Math.max(0, puntos);
 
       resVal.textContent = `${safe.toFixed(2)} puntos`;
-      resMeta.textContent = `Evento: ${ev.label} ($ ${monto.toLocaleString("es-AR")}) — Pos: ${pos} — Entradas: ${entradas}`;
+      resMeta.textContent = `Evento: ${ev.label} — Pos: ${pos} — Entradas: ${entradas}`;
       res.style.display = "block";
     });
   </script>
