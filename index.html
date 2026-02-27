@@ -55,9 +55,9 @@
       </div>
 
       <div class="note">
-        Fórmula ajustada:<br/>
+        Fórmula (con el paréntesis corregido):<br/>
         <code>
-          Puntos = 10 × ( √Entradas / √Pos ) × ( (1 + log10(TipoEvento)) + 0.25 ) × ( √TipoEvento / √100000 )
+          Puntos = 10 × ( √Entradas / √Pos ) × ( 1 + log10( TipoEvento + 0.25 ) × ( √TipoEvento / √100000 ) )
         </code><br/>
         Si la posición es mayor a 40, el resultado es 0.
       </div>
@@ -145,13 +145,13 @@
         return showError("Tipo de evento inválido.");
       }
 
-      // Fórmula ajustada según tu texto:
-      // 10 * (sqrt(entradas)/sqrt(pos)) * ((1 + log10(tipoEvento)) + 0.25) * (sqrt(tipoEvento)/sqrt(100000))
+      // Fórmula según tu último texto:
+      // 10 * (sqrt(entradas)/sqrt(pos)) * (1 + log10(tipoEvento + 0.25) * (sqrt(tipoEvento)/sqrt(100000)))
       const parte1 = Math.sqrt(entradas) / Math.sqrt(pos);
-      const parte2 = (1 + log10(tipoEvento)) + 0.25; // ojo: el +0.25 va "afuera" del paréntesis del log
       const parte3 = Math.sqrt(tipoEvento) / Math.sqrt(100000);
+      const parte2 = 1 + (log10(tipoEvento + 0.25) * parte3);
 
-      const puntos = 10 * parte1 * parte2 * parte3;
+      const puntos = 10 * parte1 * parte2;
       const safe = Math.max(0, puntos);
 
       resVal.textContent = `${safe.toFixed(2)} puntos`;
