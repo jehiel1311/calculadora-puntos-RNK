@@ -19,8 +19,8 @@
     .ok  { border-color: #0a0; }
     .big { font-size: 22px; font-weight: 700; }
     .muted { color: var(--m); font-size: 13px; margin-top: 6px; }
-    .note { margin-top: 18px; font-size: 12px; color: var(--m); line-height: 1.35; }
-    code { background:#f3f4f6; padding:2px 6px; border-radius: 6px; }
+    .formula { margin-top: 25px; font-size: 14px; background:#f9fafb; padding:15px; border-radius:10px; border:1px solid var(--b); }
+    code { background:#f3f4f6; padding:4px 6px; border-radius:6px; display:block; margin-top:8px; }
   </style>
 </head>
 <body>
@@ -30,12 +30,12 @@
 
     <div class="grid">
       <label>
-        Cantidad de entradas (Q Ent)
+        Cantidad de entradas totales al torneo
         <input id="qEnt" inputmode="numeric" placeholder="Ej: 120" />
       </label>
 
       <label>
-        Posición final (Pos) — solo TOP 40
+        Posición en la que terminó el jugador (TOP 40)
         <select id="pos"></select>
       </label>
 
@@ -53,19 +53,28 @@
         <div id="resVal" class="big">0.00 puntos</div>
         <div id="resMeta" class="muted"></div>
       </div>
-
-      <div class="note">
-        Fórmula (con el paréntesis corregido):<br/>
-        <code>
-          Puntos = 10 × ( √Entradas / √Pos ) × ( 1 + log10( TipoEvento + 0.25 ) × ( √TipoEvento / √100000 ) )
-        </code><br/>
-        Si la posición es mayor a 40, el resultado es 0.
-      </div>
     </div>
+
+    <div class="formula">
+      <strong>Fórmula aplicada:</strong>
+
+      <code>
+Puntos =
+10 × √(Entradas / Posición)
+× ( 1 + log₁₀( Tipo de evento + 0,25 ) )
+× √( Tipo de evento / 100.000 )
+      </code>
+
+      Donde:
+      <br>• Entradas = cantidad total de entradas del torneo
+      <br>• Posición = puesto final del jugador
+      <br>• Tipo de evento = valor interno que reemplaza (Buy In + monto RNK sin rake y sin KO)
+    </div>
+
   </main>
 
   <script>
-    // Montos internos (ARS)
+    // Montos internos (Tipo de evento)
     const EVENTOS = [
       { key: "FINAL_HAND", label: "FINAL HAND", monto: 225000 },
       { key: "CHAMPIONS",  label: "CHAMPIONS",  monto: 105000 },
@@ -87,75 +96,58 @@
     // Cargar posiciones 1..40
     for (let i = 1; i <= 40; i++) {
       const opt = document.createElement("option");
-      opt.value = String(i);
-      opt.textContent = String(i);
+      opt.value = i;
+      opt.textContent = i;
       posSel.appendChild(opt);
     }
-    posSel.value = "1";
 
-    // Cargar eventos (solo nombres visibles)
+    // Cargar eventos
     EVENTOS.forEach(ev => {
       const opt = document.createElement("option");
       opt.value = ev.key;
       opt.textContent = ev.label;
       eventoSel.appendChild(opt);
     });
-    eventoSel.value = "FINAL_HAND";
-
-    function showError(text){
-      msg.style.display = "block";
-      msg.className = "box err";
-      msg.textContent = text;
-      res.style.display = "none";
-    }
-    function hideError(){
-      msg.style.display = "none";
-      msg.textContent = "";
-    }
 
     function log10(x){
       return Math.log10 ? Math.log10(x) : (Math.log(x) / Math.log(10));
     }
 
+    function showError(text){
+      msg.style.display = "block";
+      msg.textContent = text;
+      res.style.display = "none";
+    }
+
     btn.addEventListener("click", () => {
-      hideError();
+      msg.style.display = "none";
 
-      const entradas = Number(String(qEntEl.value).replace(",", "."));
-      const pos = Number(posSel.value);
+      const entradas = Number(qEntEl.value);
+      const posicion = Number(posSel.value);
 
-      if (!Number.isFinite(entradas) || entradas <= 0) {
-        return showError("Ingresá una cantidad de entradas válida (> 0).");
+      if (!entradas || entradas <= 0) {
+        return showError("Ingresá una cantidad válida de entradas.");
       }
 
-      if (!Number.isFinite(pos) || pos <= 0) {
-        return showError("Seleccioná una posición válida.");
-      }
-
-      if (pos > 40) {
-        resVal.textContent = `0.00 puntos`;
-        resMeta.textContent = `Posición > 40 (sin puntos).`;
+      if (posicion > 40) {
+        resVal.textContent = "0.00 puntos";
+        resMeta.textContent = "Solo se otorgan puntos hasta el TOP 40.";
         res.style.display = "block";
         return;
       }
 
-      const ev = EVENTOS.find(e => e.key === eventoSel.value);
-      const tipoEvento = ev ? ev.monto : 0;
+      const evento = EVENTOS.find(e => e.key === eventoSel.value);
+      const T = evento.monto;
 
-      if (!Number.isFinite(tipoEvento) || tipoEvento <= 0) {
-        return showError("Tipo de evento inválido.");
-      }
+      // Fórmula EXACTA según imagen
+      const puntos =
+        10 *
+        Math.sqrt(entradas / posicion) *
+        (1 + log10(T + 0.25)) *
+        Math.sqrt(T / 100000);
 
-      // Fórmula según tu último texto:
-      // 10 * (sqrt(entradas)/sqrt(pos)) * (1 + log10(tipoEvento + 0.25) * (sqrt(tipoEvento)/sqrt(100000)))
-      const parte1 = Math.sqrt(entradas) / Math.sqrt(pos);
-      const parte3 = Math.sqrt(tipoEvento) / Math.sqrt(100000);
-      const parte2 = 1 + (log10(tipoEvento + 0.25) * parte3);
-
-      const puntos = 10 * parte1 * parte2;
-      const safe = Math.max(0, puntos);
-
-      resVal.textContent = `${safe.toFixed(2)} puntos`;
-      resMeta.textContent = `Evento: ${ev.label} — Pos: ${pos} — Entradas: ${entradas}`;
+      resVal.textContent = puntos.toFixed(2) + " puntos";
+      resMeta.textContent = `Evento: ${evento.label} — Posición: ${posicion} — Entradas: ${entradas}`;
       res.style.display = "block";
     });
   </script>
