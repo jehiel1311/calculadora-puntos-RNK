@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calculadora de Puntos CAP 2026</title>
+  <style>
+    :root { --b:#e5e7eb; --t:#111827; --m:#6b7280; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; color:var(--t); background:#fff; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 6px; font-size: 28px; }
+    p { margin: 0 0 18px; color: var(--m); }
+    .grid { display:grid; gap: 12px; }
+    label { display:block; font-size: 14px; }
+    input, select { width:100%; padding: 10px; margin-top: 6px; border: 1px solid var(--b); border-radius: 10px; font-size: 15px; }
+    button { padding: 12px; border-radius: 10px; border: 1px solid var(--b); background:#fff; font-weight: 700; cursor:pointer; }
+    .box { padding: 12px; border-radius: 10px; border: 1px solid var(--b); }
+    .err { border-color: #f0a; }
+    .ok  { border-color: #0a0; }
+    .big { font-size: 22px; font-weight: 700; }
+    .muted { color: var(--m); font-size: 13px; margin-top: 6px; }
+    .note { margin-top: 18px; font-size: 12px; color: var(--m); line-height: 1.35; }
+    code { background:#f3f4f6; padding:2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Calculadora de Puntos CAP 2026</h1>
+    <p>Ingresá los datos del torneo para calcular tus puntos.</p>
+
+    <div class="grid">
+      <label>
+        Cantidad de entradas (Q Ent)
+        <input id="qEnt" inputmode="numeric" placeholder="Ej: 120" />
+      </label>
+
+      <label>
+        Posición final (Pos)
+        <input id="pos" inputmode="numeric" placeholder="Ej: 15" />
+      </label>
+
+      <label>
+        Valor del Buy In (BI)
+        <input id="bi" inputmode="decimal" placeholder="Ej: 500" />
+      </label>
+
+      <label>
+        Tipo de evento
+        <select id="evento"></select>
+      </label>
+
+      <label>
+        Sede (multiplicador)
+        <select id="sede">
+          <option value="1">Otra sede (x1)</option>
+          <option value="1.5">Casino Club Santa Rosa (x1,5)</option>
+          <option value="1.5">City Center Iguazú (x1,5)</option>
+          <option value="1.5">Casino Club Bariloche (x1,5)</option>
+        </select>
+      </label>
+
+      <button id="btn">Calcular Puntos</button>
+
+      <div id="msg" class="box" style="display:none;"></div>
+
+      <div id="res" class="box ok" style="display:none;">
+        <div style="font-weight:700; margin-bottom:6px;">Resultado</div>
+        <div id="resVal" class="big">0.00 puntos</div>
+        <div id="resMult" class="muted"></div>
+      </div>
+
+      <div class="muted">Ingresá todos los datos y presioná “Calcular Puntos”.</div>
+
+      <div class="note">
+        Fórmula: <code>Puntos = √(QEnt/Pos) × 3.5 × (0.5 + log(BI) × E)</code><br/>
+        Nota: acá se usa <b>log base 10</b> (log10). Si querés log natural (ln), cambiá <code>Math.log10</code> por <code>Math.log</code> en el script.
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Factores E (según tabla CAP)
+    const FACTOR_E = {
+      MAIN_EVENT: 1.25,
+      MONSTER_STACK: 1,
+      MINI_MAIN_EVENT: 1,
+      HIGH_ONE_DAY: 1,
+      BIG_STACK: 1,
+      DEEP_STACK_CLOSER: 1,
+      HIGH_ROLLER: 1,
+      MYSTERY_BOUNTY: 1,
+      SHR: 1,
+      HIGH_GODZILLA: 1,
+      DAILY_KO: 0.75,
+      FLASH_POKER: 0.75,
+      TURBO_FINALE: 0.75,
+      TURBO_400: 0.75,
+      EIGHT_MAX: 0.75,
+      UPPERCUT_KO_PROG: 0.75,
+      TURBO_300: 0.75,
+      DEEP_STACK: 0.75
+    };
+
+    const EVENTO_LABEL = {
+      MAIN_EVENT: "Main Event",
+      MONSTER_STACK: "Monster Stack",
+      MINI_MAIN_EVENT: "Mini Main Event",
+      HIGH_ONE_DAY: "High One Day",
+      BIG_STACK: "Big Stack",
+      DEEP_STACK_CLOSER: "Deep Stack Closer",
+      HIGH_ROLLER: "High Roller",
+      MYSTERY_BOUNTY: "Mystery Bounty",
+      SHR: "SHR",
+      HIGH_GODZILLA: "High Godzilla",
+      DAILY_KO: "Daily KO",
+      FLASH_POKER: "Flash Poker",
+      TURBO_FINALE: "Turbo Finale",
+      TURBO_400: "Turbo 400",
+      EIGHT_MAX: "8 Max",
+      UPPERCUT_KO_PROG: "Uppercut KO Prog",
+      TURBO_300: "Turbo 300",
+      DEEP_STACK: "Deep Stack"
+    };
+
+    const eventoSel = document.getElementById("evento");
+    for (const k of Object.keys(FACTOR_E)) {
+      const opt = document.createElement("option");
+      opt.value = k;
+      opt.textContent = `${EVENTO_LABEL[k]} (E=${FACTOR_E[k]})`;
+      eventoSel.appendChild(opt);
+    }
+    eventoSel.value = "MAIN_EVENT";
+
+    const qEntEl = document.getElementById("qEnt");
+    const posEl  = document.getElementById("pos");
+    const biEl   = document.getElementById("bi");
+    const sedeEl = document.getElementById("sede");
+    const btn    = document.getElementById("btn");
+    const msg    = document.getElementById("msg");
+    const res    = document.getElementById("res");
+    const resVal = document.getElementById("resVal");
+    const resMult= document.getElementById("resMult");
+
+    function showError(text){
+      msg.style.display = "block";
+      msg.className = "box err";
+      msg.textContent = text;
+      res.style.display = "none";
+    }
+
+    function hideError(){
+      msg.style.display = "none";
+      msg.textContent = "";
+    }
+
+    btn.addEventListener("click", () => {
+      hideError();
+
+      const q = Number(String(qEntEl.value).replace(",", "."));
+      const p = Number(String(posEl.value).replace(",", "."));
+      const b = Number(String(biEl.value).replace(",", "."));
+
+      if (!Number.isFinite(q) || q <= 0) return showError("Ingresá una cantidad de entradas válida (> 0).");
+      if (!Number.isFinite(p) || p <= 0) return showError("Ingresá una posición válida (> 0).");
+      if (!Number.isFinite(b) || b <= 0) return showError("Ingresá un buy-in válido (> 0).");
+
+      const E = FACTOR_E[eventoSel.value];
+      const mult = Number(sedeEl.value);
+
+      // LOG base 10:
+      const logBI = Math.log10 ? Math.log10(b) : (Math.log(b) / Math.log(10));
+
+      const puntosBase = Math.sqrt(q / p) * 3.5 * (0.5 + logBI * E);
+      const puntosFinal = Math.max(0, puntosBase * mult);
+
+      resVal.textContent = `${puntosFinal.toFixed(2)} puntos`;
+      resMult.textContent = `Incluye multiplicador de sede: x${mult}`;
+      res.style.display = "block";
+    });
+  </script>
+</body>
+</html>
